@@ -1,12 +1,19 @@
 use evdev::{AbsoluteAxisCode, Device};
 use std::error::Error;
+use glam::IVec2;
+use glam::Vec2;
 
 pub struct TouchpadInfo {
     pub device: Device,
-    pub x_min: i32,
-    pub x_max: i32,
-    pub y_min: i32,
-    pub y_max: i32,
+    pub min: IVec2,
+    pub max: IVec2
+}
+
+impl TouchpadInfo {
+    pub fn normalise(&self, abs: IVec2) -> (Vec2) {
+        let range = (self.max - self.min).as_vec2();
+        return ((abs - self.min).as_vec2()) / range;
+    }
 }
 
 pub fn find_touchpad() -> Result<TouchpadInfo, Box<dyn Error>> {
@@ -27,10 +34,8 @@ pub fn find_touchpad() -> Result<TouchpadInfo, Box<dyn Error>> {
                 
                 return Ok(TouchpadInfo {
                     device: dev,
-                    x_min: x.minimum(),
-                    x_max: x.maximum(),
-                    y_min: y.minimum(),
-                    y_max: y.maximum(),
+                    min: IVec2 { x: x.minimum(), y: y.minimum() },
+                    max: IVec2 { x: x.maximum(), y: y.maximum() },
                 });
             }
         }
