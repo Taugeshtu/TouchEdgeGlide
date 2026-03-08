@@ -1,0 +1,1 @@
+Single loop is easy - you just spin forever and ever first reading the events, then dispatching (if necessary) the pointer move events.
