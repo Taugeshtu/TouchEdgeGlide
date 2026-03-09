@@ -7,6 +7,7 @@
 
 #future
 - [ ] Detect fingers count?.. One finger - normal behavior, two fingers - keep emitting _scroll_ events instead?..
+- [ ] IPC of some kind, so that the daemon can be toggled on/off? would be useful for integrated automation from the shell side, only allowing it during drag-n-drop or some such..
 
 # Done
 #v0_2_1
