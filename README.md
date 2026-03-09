@@ -43,14 +43,45 @@ Then you'd need to compile the binary. That's easy:
 # navigate to where you want it to live, for example, ~/Applications/Gits
 git clone https://github.com/Taugeshtu/TouchEdgeGlide
 cd TouchEdgeGlide
-cargo build --release
+cargo install --path . --root ~/.local
 ```
-This will produce a binary: `TouchEdgeGlide/target/release/touch-edge-glide`
+This will produce a binary into your home directory: `~/.local/bin/touch-edge-glide`
+
+_(if you'd rather not, you can use `cargo build --release` and find it at `TouchEdgeGlide/target/release/touch-edge-glide`)_
 
 ### making it run automatically on your system
-You would have to research it yourself, but many wayland compositors have facilities for launching programs at startup.
-For example, in [niri](https://github.com/niri-wm/niri) it looks like this:
+(assuming the binary had been put in `~/.local/bin`)
+The best way to have it go-go is with systemd. It will take care of restarting the daemon if it fails (for example, because touchpad got disconnected, or the system went to suspend). For example:
+`code ~/.config/systemd/user/touch-edge-glide.service`:
+```ini
+[Unit]
+Description=TouchEdgeGlide daemon; details on https://github.com/Taugeshtu/TouchEdgeGlide
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/touch-edge-glide
+Restart=on-failure
+RestartSec=2
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Install]
+WantedBy=default.target
 ```
-spawn-at-startup "touch-edge-glide"
+And then start the service:
+`systemctl --user enable touch-edge-glide --now`
+
+# Configuration
+Currently configuration is only possible via modifying the source in [[main.rs]]. External configuration files will come in v0.3.x
+
+### determining touchpad range
+For ease of configuration, the binary can be launched with `--monitor` argument. In this case it will report normalized (to 0..1 range) coordinates of the primary touch:
 ```
-(assuming the binary had been put somewhere it can be seen via PATH, for example in `~/.local/bin`)
+touch: x=0.05, y=0.93
+touch: x=0.16, y=0.60
+touch: x=0.16, y=0.33
+touch: x=0.11, y=0.21
+touch: x=0.10, y=0.13
+touch: x=0.09, y=0.10
+```
+You can use these values to figure out where (0, 0) and (1, 1) on your specific touchpad are. _(note: in monitor mode TEG runs at a reduced update rate of 5Hz, as to not overwhelm you; normal mode updates at ~60Hz)_

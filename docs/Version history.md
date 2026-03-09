@@ -1,11 +1,15 @@
 # Roadmap
-#v0_2_x
-- [ ] App is now a daemon that can be integrated into the system
+#v0_4_x
+- [ ] Dynamic polling rate to save CPU cycles on no-touchpad times?
 
 #v0_3_x
 - [ ] [[Configuration]] is a thing
 
 # Done
+#v0_2_0
+- [x] App is now a daemon that can be integrated into the system
+- [x] Monitor mode that just reports normalized touch position
+
 #v0_1_2
 - [x] Better internals - dedicated Zone struct, facilitating [[Configuration]] in the future
 - [x] Support for gradient zone activation
