@@ -1,5 +1,5 @@
 # Roadmap
-#v0_1_1
+#v0_1_x
 - [ ] Better internals - dedicated Zone struct, facilitating [[Configuration]] in the future
 
 #v0_2_x
@@ -9,6 +9,9 @@
 - [ ] [[Configuration]] is a thing
 
 # Done
+#v0_1_1
+- [x] Improved docs, allowing other humans to use the project (at least in principle)
+
 #v0_1_0
 - [x] Standalone Rust app
 - [x] That initializes listening to a touchpad device on startup
