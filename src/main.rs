@@ -12,25 +12,59 @@ use uinput::event::Event::{Controller, Relative};
 use uinput::event::relative::Position::{X, Y};
 use uinput::event::relative::Relative::Position;
 
+mod zone;
+use crate::zone::GlideZone;
 
 fn main() {
-    println!("Hello, world!");
+    println!("TouchEdgeGlide: starting");
+    
+    let generic_start = 0.15;
+    let generic_end = 0.05;
+    let generic_speed = 5.0;
+    
+    let zone_left = GlideZone {
+        glide_direction: Vec2 { x:-1.0, y: 0.0 },
+        edge_start: generic_start,
+        edge_end: generic_end,
+        glide_speed: generic_speed
+    };
+    let zone_right = GlideZone {
+        glide_direction: Vec2 { x: 1.0, y: 0.0 },
+        edge_start: 1.0 - generic_start,
+        edge_end: 1.0 - generic_end,
+        glide_speed: generic_speed
+    };
+    let zone_up = GlideZone {
+        glide_direction: Vec2 { x: 0.0, y:-1.0 },
+        edge_start: generic_start,
+        edge_end: generic_end,
+        glide_speed: generic_speed
+    };
+    let zone_down = GlideZone {
+        glide_direction: Vec2 { x: 0.0, y: 1.0 },
+        edge_start: 1.0 - generic_start,
+        edge_end: 1.0 - generic_end,
+        glide_speed: generic_speed
+    };
+    let zones = [zone_left, zone_right, zone_up, zone_down];
     
     let mut touchpad = match init::find_touchpad() {
         Ok(touchpad) => touchpad,
         Err(e) => panic!("No touchpad found: {}", e),
     };
+    println!("TouchEdgeGlide: touchpad device secured! range: x({}..{}) y({}..{})",
+        touchpad.min.x, touchpad.max.x,
+        touchpad.min.y, touchpad.max.y
+    );
     
     let mut output = uinput::default().unwrap()
-        .name("test").unwrap()
+        .name("TouchEdgeGlide").unwrap()
         .event(Controller(Mouse(Left))).unwrap() // It's necessary to enable any mouse button. Otherwise Relative events would not work.
         .event(Relative(Position(X))).unwrap()
         .event(Relative(Position(Y))).unwrap()
         .create().unwrap();
+    println!("TouchEdgeGlide: virtual mouse output established!");
     
-    println!("Touchpad range x: ({}..{}) y: ({}..{})", 
-    touchpad.min.x, touchpad.max.x, 
-    touchpad.min.y, touchpad.max.y);
     
     loop {
         let abs_state = match touchpad.device.get_abs_state() {
@@ -71,19 +105,17 @@ fn main() {
                 y: abs_state[AbsoluteAxisCode::ABS_Y.0 as usize].value };
             let normalized = touchpad.normalise(abs);
             
-            let speed = 2.0;
             let mut glide = Vec2::ZERO;
-            if( normalized.x < 0.1 ) { glide.x -= speed; }
-            if( normalized.x > 0.9 ) { glide.x += speed; }
-            if( normalized.y < 0.1 ) { glide.y -= speed; }
-            if( normalized.y > 0.9 ) { glide.y += speed; }
-            
-            output.send(X, glide.x as i32).unwrap();
-            output.send(Y, glide.y as i32).unwrap();
-            output.synchronize().unwrap();
+            for zone in &zones {
+                glide += zone.compute_glide(normalized);
+            }
             
             let int_glide = glide.as_ivec2();
             if( int_glide.x != 0 || int_glide.y != 0 ) {
+                output.send(X, glide.x as i32).unwrap();
+                output.send(Y, glide.y as i32).unwrap();
+                output.synchronize().unwrap();
+                
                 println!("edging at: {}, norm: {}", abs, normalized);
             }
         }

@@ -12,7 +12,7 @@ Inspired by [fingerpaint](https://github.com/Wazzaps/fingerpaint), which showed 
 ### making sure uinput kernel module is loaded
 run `sudo modprobe uinput`, if the output is empty - the module is loaded and everything is great! if it errors, you may need to enable it persistently - search for 'load kernel module on boot' for your distro.
 
-### configuring the access to input device
+### configuring access to the input device
 Because TouchEdgeGlide reads and manipulates input, you have two options:
 - run it as root
 - udev rule
