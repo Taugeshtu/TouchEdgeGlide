@@ -5,7 +5,13 @@
 #v0_3_x
 - [ ] [[Configuration]] is a thing
 
+#future
+- [ ] Detect fingers count?.. One finger - normal behavior, two fingers - keep emitting _scroll_ events instead?..
+
 # Done
+#v0_2_1
+- [x] Only glide when there's one finger touch
+
 #v0_2_0
 - [x] App is now a daemon that can be integrated into the system
 - [x] Monitor mode that just reports normalized touch position

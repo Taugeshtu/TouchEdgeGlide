@@ -9,8 +9,7 @@ use evdev::{EventType, AbsoluteAxisCode};
 use uinput::event::controller::Controller::Mouse;
 use uinput::event::controller::Mouse::Left;
 use uinput::event::Event::{Controller, Relative};
-use uinput::event::relative::Position::{X, Y};
-use uinput::event::relative::Relative::Position;
+use uinput::event::relative::Position;
 
 mod zone;
 use crate::zone::GlideZone;
@@ -72,8 +71,8 @@ fn main() {
         let dev = uinput::default().unwrap()
             .name("TouchEdgeGlide").unwrap()
             .event(Controller(Mouse(Left))).unwrap()
-            .event(Relative(Position(X))).unwrap()
-            .event(Relative(Position(Y))).unwrap()
+            .event(Position::X).unwrap()
+            .event(Position::Y).unwrap()
             .create().unwrap();
         println!("TouchEdgeGlide: virtual mouse output established!");
         Some(dev)
@@ -81,7 +80,6 @@ fn main() {
         println!("TouchEdgeGlide: monitor mode, no output device");
         None
     };
-    
     
     loop {
         let abs_state = match touchpad.device.get_abs_state() {
@@ -116,7 +114,13 @@ fn main() {
             }
         };
         
-        if( key_state.contains(evdev::KeyCode::BTN_TOUCH) ) {
+        let has_touch = key_state.contains(evdev::KeyCode::BTN_TOUCH);
+        let is_2_touch = key_state.contains(evdev::KeyCode::BTN_TOOL_DOUBLETAP);
+        let is_3_touch = key_state.contains(evdev::KeyCode::BTN_TOOL_TRIPLETAP);
+        let is_4_touch = key_state.contains(evdev::KeyCode::BTN_TOOL_QUADTAP);
+        let is_5_touch = key_state.contains(evdev::KeyCode::BTN_TOOL_QUINTTAP);
+        
+        if( has_touch ) {
             let abs = IVec2 {
                 x: abs_state[AbsoluteAxisCode::ABS_X.0 as usize].value,
                 y: abs_state[AbsoluteAxisCode::ABS_Y.0 as usize].value
@@ -133,8 +137,11 @@ fn main() {
                 
                 let int_glide = glide.as_ivec2();
                 if( int_glide.x != 0 || int_glide.y != 0 ) {
-                    output.as_mut().unwrap().send(X, glide.x as i32);
-                    output.as_mut().unwrap().send(Y, glide.y as i32);
+                    if( !is_2_touch && !is_3_touch && !is_4_touch && !is_5_touch ) {
+                        output.as_mut().unwrap().send(Position::X, glide.x as i32);
+                        output.as_mut().unwrap().send(Position::Y, glide.y as i32);
+                    }
+                    
                     output.as_mut().unwrap().synchronize();
                 }
             }
