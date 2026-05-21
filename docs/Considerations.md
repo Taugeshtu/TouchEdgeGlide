@@ -22,4 +22,6 @@ Some time in the future it would probably be nice to have control over how fast 
 As of #v0_1_2 we have this behavior.
 
 # [[Configuration]]
-For initial version no configuration means (other than constants in the source); for #v0_3_x or something we should have that. At the very least we'd want configuration for the edge thresholds
+As of #v0_3_0 we have external configuration via TOML. It supports either a `generic` block for all edges or specific `edges` overrides.
+- Measured in distance from the edge (0.0 to 1.0)
+- Supports progressive ramping via `zone_size` and `full_speed_at`

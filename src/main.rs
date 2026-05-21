@@ -2,17 +2,17 @@ use std::thread;
 use std::time::Duration;
 use glam::{IVec2, Vec2};
 
-mod init;
-use crate::init::TouchpadInfo;
-use evdev::{EventType, AbsoluteAxisCode};
+mod device;
+mod zone;
+mod config;
+
+use crate::zone::{GlideZone, GlideDirection};
+use evdev::AbsoluteAxisCode;
 
 use uinput::event::controller::Controller::Mouse;
 use uinput::event::controller::Mouse::Left;
-use uinput::event::Event::{Controller, Relative};
+use uinput::event::Event::Controller;
 use uinput::event::relative::Position;
-
-mod zone;
-use crate::zone::GlideZone;
 
 fn main() {
     let monitor_mode = std::env::args().any(|a| a == "--monitor");
@@ -21,41 +21,32 @@ fn main() {
         if monitor_mode { "TouchEdgeGlide: starting monitor mode" }
         else { "TouchEdgeGlide: starting" }
     );
+
+    let full_config = config::load_config();
     
+    let zones = if let Some(edges) = full_config.edges {
+        [
+            GlideZone::from_config(GlideDirection::Left, &edges.left),
+            GlideZone::from_config(GlideDirection::Right, &edges.right),
+            GlideZone::from_config(GlideDirection::Up, &edges.top),
+            GlideZone::from_config(GlideDirection::Down, &edges.bottom),
+        ]
+    } else if let Some(generic) = full_config.generic {
+        [
+            GlideZone::from_config(GlideDirection::Left, &generic),
+            GlideZone::from_config(GlideDirection::Right, &generic),
+            GlideZone::from_config(GlideDirection::Up, &generic),
+            GlideZone::from_config(GlideDirection::Down, &generic),
+        ]
+    } else {
+        eprintln!("TouchEdgeGlide: Invalid config, no generic or edges section found.");
+        std::process::exit(1);
+    };
+
     let update_frequency = if monitor_mode {5.0} else {60.0};
     let sleep_duration_ms = (1000.0 /update_frequency) as u64;
     
-    let generic_start = 0.15;
-    let generic_end = 0.05;
-    let generic_speed = 5.0;
-    
-    let zone_left = GlideZone {
-        glide_direction: Vec2 { x:-1.0, y: 0.0 },
-        edge_start: generic_start,
-        edge_end: generic_end,
-        glide_speed: generic_speed
-    };
-    let zone_right = GlideZone {
-        glide_direction: Vec2 { x: 1.0, y: 0.0 },
-        edge_start: 1.0 - generic_start,
-        edge_end: 1.0 - generic_end,
-        glide_speed: generic_speed
-    };
-    let zone_up = GlideZone {
-        glide_direction: Vec2 { x: 0.0, y:-1.0 },
-        edge_start: generic_start,
-        edge_end: generic_end,
-        glide_speed: generic_speed
-    };
-    let zone_down = GlideZone {
-        glide_direction: Vec2 { x: 0.0, y: 1.0 },
-        edge_start: 1.0 - generic_start,
-        edge_end: 1.0 - generic_end,
-        glide_speed: generic_speed
-    };
-    let zones = [zone_left, zone_right, zone_up, zone_down];
-    
-    let mut touchpad = match init::find_touchpad() {
+    let touchpad = match device::find_touchpad() {
         Ok(touchpad) => touchpad,
         Err(e) => {
             eprintln!("No touchpad found: {}", e);
@@ -120,7 +111,7 @@ fn main() {
         let is_4_touch = key_state.contains(evdev::KeyCode::BTN_TOOL_QUADTAP);
         let is_5_touch = key_state.contains(evdev::KeyCode::BTN_TOOL_QUINTTAP);
         
-        if( has_touch ) {
+        if has_touch {
             let abs = IVec2 {
                 x: abs_state[AbsoluteAxisCode::ABS_X.0 as usize].value,
                 y: abs_state[AbsoluteAxisCode::ABS_Y.0 as usize].value
@@ -136,13 +127,13 @@ fn main() {
                 }
                 
                 let int_glide = glide.as_ivec2();
-                if( int_glide.x != 0 || int_glide.y != 0 ) {
-                    if( !is_2_touch && !is_3_touch && !is_4_touch && !is_5_touch ) {
-                        output.as_mut().unwrap().send(Position::X, glide.x as i32);
-                        output.as_mut().unwrap().send(Position::Y, glide.y as i32);
+                if int_glide.x != 0 || int_glide.y != 0 {
+                    if !is_2_touch && !is_3_touch && !is_4_touch && !is_5_touch {
+                        let _ = output.as_mut().unwrap().send(Position::X, glide.x as i32);
+                        let _ = output.as_mut().unwrap().send(Position::Y, glide.y as i32);
                     }
                     
-                    output.as_mut().unwrap().synchronize();
+                    let _ = output.as_mut().unwrap().synchronize();
                 }
             }
         }

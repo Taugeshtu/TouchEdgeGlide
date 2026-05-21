@@ -2,14 +2,16 @@
 #v0_4_x
 - [ ] Dynamic polling rate to save CPU cycles on no-touchpad times?
 
-#v0_3_x
-- [ ] [[Configuration]] is a thing
-
 #future
 - [ ] Detect fingers count?.. One finger - normal behavior, two fingers - keep emitting _scroll_ events instead?..
 - [ ] IPC of some kind, so that the daemon can be toggled on/off? would be useful for integrated automation from the shell side, only allowing it during drag-n-drop or some such..
 
 # Done
+#v0_3_0
+- [x] [[Configuration]] is now external via TOML file
+- [x] "Either-or" config logic (generic vs. per-edge)
+- [x] Auto-generation of default config
+
 #v0_2_1
 - [x] Only glide when there's one finger touch
 

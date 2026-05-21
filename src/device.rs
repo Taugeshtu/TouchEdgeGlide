@@ -10,7 +10,7 @@ pub struct TouchpadInfo {
 }
 
 impl TouchpadInfo {
-    pub fn normalise(&self, abs: IVec2) -> (Vec2) {
+    pub fn normalise(&self, abs: IVec2) -> Vec2 {
         let range = (self.max - self.min).as_vec2();
         return ((abs - self.min).as_vec2()) / range;
     }

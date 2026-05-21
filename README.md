@@ -38,16 +38,22 @@ sudo udevadm trigger
 
 ### getting the binary
 Presently, you would have to build it yourself. For this you'd need [rust installed in your system](https://rust-lang.org/tools/install/) - rustup is an easy way to get there for most distros.
-Then you'd need to compile the binary. That's easy:
+
+The easiest way to install is directly via cargo:
+```bash
+cargo install --git https://github.com/Taugeshtu/TouchEdgeGlide --root ~/.local
+```
+This will produce a binary into your home directory: `~/.local/bin/touch-edge-glide`
+
+Alternatively, you can clone and build manually:
 ``` bash
 # navigate to where you want it to live, for example, ~/Applications/Gits
 git clone https://github.com/Taugeshtu/TouchEdgeGlide
 cd TouchEdgeGlide
 cargo install --path . --root ~/.local
 ```
-This will produce a binary into your home directory: `~/.local/bin/touch-edge-glide`
 
-_(if you'd rather not, you can use `cargo build --release` and find it at `TouchEdgeGlide/target/release/touch-edge-glide`)_
+_(if you'd rather not install it into ~/.local, you can use `cargo build --release` and find it at `target/release/touch-edge-glide`)_
 
 ### making it run automatically on your system
 (assuming the binary had been put in `~/.local/bin`)
@@ -72,16 +78,33 @@ And then start the service:
 `systemctl --user enable touch-edge-glide --now`
 
 # Configuration
-Currently configuration is only possible via modifying the source in [[main.rs]]. External configuration files will come in v0.3.x
+On its first run, the daemon will create a default configuration file at:
+`~/.config/touch-edge-glide/config.toml`
+
+**Note:** Hot-reloading is not yet supported. After modifying the configuration, you must restart the service to apply changes:
+```bash
+systemctl --user restart touch-edge-glide
+```
+
+### "Either-or" Mode
+The configuration supports two modes of operation:
+1. **Generic**: A single set of parameters applied to all four edges.
+2. **Edges**: Specific parameters for each edge (`left`, `right`, `top`, `bottom`). If the `[edges]` section is present in your config, the `[generic]` section is completely ignored.
+
+### Glide Parameters
+- **`speed`**: How fast the pointer moves (in pixels per frame).
+- **`zone_size`**: The "thickness" of the zone as a fraction of the touchpad (0.0 to 1.0). For example, `0.15` means the glide starts when your finger is within the outer 15% of the touchpad.
+- **`full_speed_at`**: At what point the glide reaches its maximum speed. 
+    - If `full_speed_at` is smaller than `zone_size`, the speed will ramp up linearly as you move closer to the physical edge.
+    - If they are equal, the glide is "sharp" (instantly full speed).
 
 ### determining touchpad range
 For ease of configuration, the binary can be launched with `--monitor` argument. In this case it will report normalized (to 0..1 range) coordinates of the primary touch:
 ```
 touch: x=0.05, y=0.93
 touch: x=0.16, y=0.60
-touch: x=0.16, y=0.33
-touch: x=0.11, y=0.21
-touch: x=0.10, y=0.13
-touch: x=0.09, y=0.10
 ```
-You can use these values to figure out where (0, 0) and (1, 1) on your specific touchpad are. _(note: in monitor mode TEG runs at a reduced update rate of 5Hz, as to not overwhelm you; normal mode updates at ~60Hz)_
+You can use these values to verify which way your axes are oriented and how large you want your zones to be. _(note: in monitor mode TEG runs at a reduced update rate of 5Hz, as to not overwhelm you; normal mode updates at ~60Hz)_
+
+# Ideas / TODO
+- **Delayed fade-in** — activate glide after a short delay, gradually ramping up speed rather than jumping to full glide instantly. Avoids accidental triggers when brushing the edge.
