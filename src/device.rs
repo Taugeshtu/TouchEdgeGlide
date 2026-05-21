@@ -25,12 +25,19 @@ pub fn find_touchpad() -> Result<TouchpadInfo, Box<dyn Error>> {
                 .supported_absolute_axes()
                 .map_or(false, |axes| axes.contains(AbsoluteAxisCode::ABS_X) && axes.contains(AbsoluteAxisCode::ABS_Y));
             if supported {
+                // Note: we consume the iterator sequentially, finding ABS_X first, then ABS_Y.
+                // This works because the kernel enumerates axes in code order (ABS_X=0x00, ABS_Y=0x01),
+                // and the kernel does not break userspace ABI. If this ever somehow breaks:
+                // collect into a HashMap<AbsoluteAxisCode, AbsInfo> instead.
                 let mut abs_info = dev.get_absinfo()?;
                 let x = abs_info.find(|(code, _)| *code == AbsoluteAxisCode::ABS_X)
                     .ok_or("No ABS_X")?.1;
                 let y = abs_info.find(|(code, _)| *code == AbsoluteAxisCode::ABS_Y)
                     .ok_or("No ABS_Y")?.1;
                 drop(abs_info);
+                
+                println!("TouchEdgeGlide: using device \"{}\" at {:?}",
+                    dev.name().unwrap_or("unknown"), path);
                 
                 return Ok(TouchpadInfo {
                     device: dev,

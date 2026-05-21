@@ -14,6 +14,16 @@ use uinput::event::controller::Mouse::Left;
 use uinput::event::Event::Controller;
 use uinput::event::relative::Position;
 
+fn create_virtual_mouse() -> Result<uinput::Device, Box<dyn std::error::Error>> {
+    let dev = uinput::default()?
+        .name("TouchEdgeGlide")?
+        .event(Controller(Mouse(Left)))?
+        .event(Position::X)?
+        .event(Position::Y)?
+        .create()?;
+    Ok(dev)
+}
+
 fn main() {
     let monitor_mode = std::env::args().any(|a| a == "--monitor");
     
@@ -59,14 +69,18 @@ fn main() {
     );
     
     let mut output = if !monitor_mode {
-        let dev = uinput::default().unwrap()
-            .name("TouchEdgeGlide").unwrap()
-            .event(Controller(Mouse(Left))).unwrap()
-            .event(Position::X).unwrap()
-            .event(Position::Y).unwrap()
-            .create().unwrap();
-        println!("TouchEdgeGlide: virtual mouse output established!");
-        Some(dev)
+        match create_virtual_mouse() {
+            Ok(dev) => {
+                println!("TouchEdgeGlide: virtual mouse output established!");
+                Some(dev)
+            }
+            Err(e) => {
+                eprintln!("TouchEdgeGlide: Failed to create virtual mouse device: {}", e);
+                eprintln!("  Hint: is the 'uinput' kernel module loaded? (sudo modprobe uinput)");
+                eprintln!("  Hint: do you have write access to /dev/uinput?");
+                std::process::exit(1);
+            }
+        }
     } else {
         println!("TouchEdgeGlide: monitor mode, no output device");
         None
@@ -76,7 +90,6 @@ fn main() {
         let abs_state = match touchpad.device.get_abs_state() {
             Ok(abs) => abs,
             Err(e) => match e.kind() {
-                std::io::ErrorKind::WouldBlock => continue,
                 std::io::ErrorKind::NotFound |
                 std::io::ErrorKind::PermissionDenied => {
                     eprintln!("Touchpad gone or inaccessible: {}", e);
@@ -92,7 +105,6 @@ fn main() {
         let key_state = match touchpad.device.get_key_state() {
             Ok(keystate) => keystate,
             Err(e) => match e.kind() {
-                std::io::ErrorKind::WouldBlock => continue,
                 std::io::ErrorKind::NotFound |
                 std::io::ErrorKind::PermissionDenied => {
                     eprintln!("Touchpad gone or inaccessible: {}", e);
@@ -129,11 +141,17 @@ fn main() {
                 let int_glide = glide.as_ivec2();
                 if int_glide.x != 0 || int_glide.y != 0 {
                     if !is_2_touch && !is_3_touch && !is_4_touch && !is_5_touch {
-                        let _ = output.as_mut().unwrap().send(Position::X, glide.x as i32);
-                        let _ = output.as_mut().unwrap().send(Position::Y, glide.y as i32);
+                        let out = output.as_mut().unwrap();
+                        if let Err(e) = out.send(Position::X, glide.x as i32) {
+                            eprintln!("TouchEdgeGlide: failed to send X event: {}", e);
+                        }
+                        if let Err(e) = out.send(Position::Y, glide.y as i32) {
+                            eprintln!("TouchEdgeGlide: failed to send Y event: {}", e);
+                        }
+                        if let Err(e) = out.synchronize() {
+                            eprintln!("TouchEdgeGlide: failed to synchronize: {}", e);
+                        }
                     }
-                    
-                    let _ = output.as_mut().unwrap().synchronize();
                 }
             }
         }
