@@ -1,4 +1,3 @@
-# TouchEdgeGlide
 Adds "edge zones" to your touchpad; when there's touch happening inside a zone - your pointer is moved in the direction of that zone. Put simply: touch left edge of the touchpad -> cursor glides to the left. Move finger back from the edge, the glide stops. For Wayland.
 
 ### why
@@ -8,7 +7,7 @@ Because I'm a windows refuge and my laptop had that feature on windows, and I am
 Grabs touchpad's current touch points from [evdev](https://github.com/emberian/evdev), when appropriate - emits [uinput](https://github.com/meh/rust-uinput) events. That simple.
 Inspired by [fingerpaint](https://github.com/Wazzaps/fingerpaint), which showed me that absolute touchpad positioning events exist.
 
-# Installation
+# Install
 ### making sure uinput kernel module is loaded
 run `sudo modprobe uinput`, if the output is empty - the module is loaded and everything is great! if it errors, you may need to enable it persistently - search for 'load kernel module on boot' for your distro.
 
@@ -30,28 +29,30 @@ ACTION!="remove", ATTRS{name}=="PUT_THE_NAME_OF_THE_TOUCHPAD_DEVICE_HERE", SUBSY
 ```
 (this udev rule, matching not to kernel address, but rather to the device name, should be much more stable; if you match to kernel's handle like `/dev/input/event5` - be prepared that plugging in a USB stick and rebooting will break the enumeration)
 
-&Reload udev:
+& Reload udev:
 ```
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
 ### getting the binary
-Presently, you would have to build it yourself. For this you'd need [rust installed in your system](https://rust-lang.org/tools/install/) - rustup is an easy way to get there for most distros.
+Dependencies:
+- [rust installed in your system](https://rust-lang.org/tools/install/)
 
-The easiest way to install is directly via cargo:
+Build & install with cargo:
 ```bash
 cargo install --git https://github.com/Taugeshtu/TouchEdgeGlide --root ~/.local
 ```
-This will produce a binary into your home directory: `~/.local/bin/touch-edge-glide`
 
-Alternatively, you can clone and build manually:
+_Alternatively:_
 ``` bash
 # navigate to where you want it to live, for example, ~/Applications/Gits
 git clone https://github.com/Taugeshtu/TouchEdgeGlide
 cd TouchEdgeGlide
 cargo install --path . --root ~/.local
 ```
+
+This will produce a binary into your home directory: `~/.local/bin/touch-edge-glide`
 
 _(if you'd rather not install it into ~/.local, you can use `cargo build --release` and find it at `target/release/touch-edge-glide`)_
 
@@ -86,7 +87,7 @@ On its first run, the daemon will create a default configuration file at:
 systemctl --user restart touch-edge-glide
 ```
 
-### "Either-or" Mode
+### Configuration modes
 The configuration supports two modes of operation:
 1. **Generic**: A single set of parameters applied to all four edges.
 2. **Edges**: Specific parameters for each edge (`left`, `right`, `top`, `bottom`). If the `[edges]` section is present in your config, the `[generic]` section is completely ignored.
